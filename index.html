@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpendManager 95 Plus</title>
+    <style>
+        /* 90s Operating System Color Palette & Micro-fonts */
+        :root {
+            --win-bg: #c0c0c0;
+            --win-edge-light: #fff;
+            --win-edge-shadow: #808080;
+            --win-edge-dark: #000;
+            --title-blue: #000080;
+            --title-text: #fff;
+            --input-bg: #fff;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: "MS Sans Serif", "Courier New", monospace;
+            font-size: 14px;
+        }
+
+        body {
+            background-color: #008080; /* Classic Teal Desktop */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* The Application Window (Beveled Edges) */
+        .window {
+            background-color: var(--win-bg);
+            width: 400px;
+            padding: 3px;
+            border-top: 2px solid var(--win-edge-light);
+            border-left: 2px solid var(--win-edge-light);
+            border-right: 2px solid var(--win-edge-dark);
+            border-bottom: 2px solid var(--win-edge-dark);
+            box-shadow: 1px 1px 0px var(--win-edge-shadow);
+        }
+
+        /* Classic Blue Title Bar */
+        .title-bar {
+            background: linear-gradient(90deg, var(--title-blue), #1084d0);
+            color: var(--title-text);
+            padding: 4px 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .title-bar-controls button {
+            background-color: var(--win-bg);
+            border-top: 1px solid var(--win-edge-light);
+            border-left: 1px solid var(--win-edge-light);
+            border-right: 2px solid var(--win-edge-dark);
+            border-bottom: 2px solid var(--win-edge-dark);
+            font-weight: bold;
+            padding: 1px 4px;
+            cursor: pointer;
+        }
+
+        .window-body {
+            padding: 15px;
+        }
+
+        .field-row {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 12px;
+        }
+
+        label {
+            margin-bottom: 4px;
+        }
+
+        /* Inset inputs (sunken look) */
+        input[type="date"], input[type="number"], select.win-select {
+            padding: 4px;
+            background-color: var(--input-bg);
+            border-top: 2px solid var(--win-edge-dark);
+            border-left: 2px solid var(--win-edge-dark);
+            border-right: 2px solid var(--win-edge-light);
+            border-bottom: 2px solid var(--win-edge-light);
+            outline: none;
+        }
+
+        select.win-select {
+            font-size: 12px;
+            height: 22px;
+            padding: 1px 2px;
+            font-weight: normal;
+        }
+
+        /* Outset Buttons (raised look) */
+        button.win-btn {
+            width: 100%;
+            padding: 6px;
+            background-color: var(--win-bg);
+            border-top: 2px solid var(--win-edge-light);
+            border-left: 2px solid var(--win-edge-light);
+            border-right: 2px solid var(--win-edge-dark);
+            border-bottom: 2px solid var(--win-edge-dark);
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        button.win-btn:active {
+            border-top: 2px solid var(--win-edge-dark);
+            border-left: 2px solid var(--win-edge-dark);
+            border-right: 2px solid var(--win-edge-light);
+            border-bottom: 2px solid var(--win-edge-light);
+            padding: 7px 5px 5px 7px;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid var(--win-edge-shadow);
+            border-bottom: 1px solid var(--win-edge-light);
+            margin: 15px 0;
+        }
+
+        /* Database Log View */
+        .log-container {
+            background: var(--input-bg);
+            border-top: 2px solid var(--win-edge-dark);
+            border-left: 2px solid var(--win-edge-dark);
+            border-right: 2px solid var(--win-edge-light);
+            border-bottom: 2px solid var(--win-edge-light);
+            height: 180px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px dashed #d0d0d0;
+        }
+
+        .log-item:last-child {
+            border-bottom: none;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: red;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .status-box {
+            background: #fff;
+            border-top: 2px solid var(--win-edge-dark);
+            border-left: 2px solid var(--win-edge-dark);
+            border-right: 2px solid var(--win-edge-light);
+            border-bottom: 2px solid var(--win-edge-light);
+            padding: 8px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #000080;
+        }
+
+        .chart-container {
+            background: #fff;
+            border-top: 2px solid var(--win-edge-dark);
+            border-left: 2px solid var(--win-edge-dark);
+            border-right: 2px solid var(--win-edge-light);
+            border-bottom: 2px solid var(--win-edge-light);
+            height: 200px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            padding: 10px;
+            gap: 8px;
+        }
+
+        .chart-bar-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            height: 100%;
+            justify-content: flex-end;
+        }
+
+        .chart-bar {
+            width: 100%;
+            background: linear-gradient(to right, #000080, #1084d0);
+            border-top: 1px solid var(--win-edge-light);
+            border-left: 1px solid var(--win-edge-light);
+            border-right: 1px solid var(--win-edge-dark);
+            transition: height 0.3s ease;
+            min-height: 2px;
+        }
+
+        .chart-label {
+            font-size: 10px;
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* Side Container Stack for Layout Control */
+        .window-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 400px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ORIGINAL DATA INPUT WINDOW -->
+<div class="window">
+    <div class="title-bar">
+        <div class="title-bar-text">📁 SpendManager v1.3</div>
+        <div class="title-bar-controls">
+            <button aria-label="Minimize">_</button>
+            <button aria-label="Maximize">?</button>
+            <button aria-label="Close" onclick="alert('System cannot be closed!')">X</button>
+        </div>
+    </div>
+    
+    <div class="window-body">
+        <div class="field-row">
+            <label for="date-input">Select Date:</label>
+            <input id="date-input" type="date">
+        </div>
+        
+        <div class="field-row">
+            <label for="amount-input">Amount Spent (₹):</label>
+            <input id="amount-input" type="number" step="0.01" placeholder="0.00">
+        </div>
+        
+        <button class="win-btn" onclick="saveSpending()">COMMIT TO DATABASE</button>
+        
+        <hr>
+        
+        <label>Stored Ledger Entries:</label>
+        <div class="log-container" id="ledger-box"></div>
+    </div>
+</div>
+
+<!-- SIDE COLUMN STACKING DASHBOARD & NEW PORTABILITY UTILITY -->
+<div class="window-column">
+    
+    <!-- GRAPHICS & STATS MODULE -->
+    <div class="window" style="width: 100%;">
+        <div class="title-bar" style="background: linear-gradient(90deg, #808080, #b5b5b5); color: #000;">
+            <div class="title-bar-text" style="font-weight: bold;">📊 BudgetGraph Dashboard</div>
+            <div>
+                <select id="view-filter" class="win-select" onchange="loadLedger()">
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly" selected>Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="window-body">
+            <label>Total Cumulative Debt/Spend:</label>
+            <div class="status-box" id="total-spend-box">₹0.00</div>
+
+            <label id="chart-title">Historical Analysis:</label>
+            <div class="chart-container" id="chart-box"></div>
+        </div>
+    </div>
+
+    <!-- NEW WINDOW: RETRO 3.5" DISK BACKUP MODULE -->
+    <div class="window" style="width: 100%;">
+        <div class="title-bar" style="background: linear-gradient(90deg, #b5a4a4, #d8cccc); color: #000;">
+            <div class="title-bar-text" style="font-weight: bold;">💾 3.5" Floppy Disk Utility</div>
+        </div>
+        <div class="window-body">
+            <label>Move Data to New PC:</label>
+            <button class="win-btn" onclick="exportDataFile()">EXPORT TO BACKUP.TXT</button>
+            
+            <hr style="margin: 10px 0;">
+            
+            <label>Restore / Import Ledger File:</label>
+            <input type="file" id="file-uploader" style="display: none;" onchange="importDataFile(event)">
+            <!-- Fake Retro Look File Trigger Button -->
+            <button class="win-btn" style="margin-top:5px;" onclick="document.getElementById('file-uploader').click()">LOAD BACKUP.TXT FROM DISK</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.getElementById('date-input').value = new Date().toISOString().split('T')[0];
+
+    function loadLedger() {
+        const ledgerBox = document.getElementById('ledger-box');
+        ledgerBox.innerHTML = '';
+        
+        const history = JSON.parse(localStorage.getItem('dailySpending')) || {};
+        const sortedDates = Object.keys(history).sort((a, b) => new Date(b) - new Date(a));
+        
+        if (sortedDates.length === 0) {
+            ledgerBox.innerHTML = '<div style="color: #808080; text-align:center; margin-top:60px;">[No Records Found]</div>';
+            updateMetrics({});
+            return;
+        }
+
+        sortedDates.forEach(date => {
+            const div = document.createElement('div');
+            div.className = 'log-item';
+            div.innerHTML = `
+                <span><strong>${date}</strong></span>
+                <span>₹${parseFloat(history[date]).toFixed(2)} 
+                    <button class="delete-btn" onclick="deleteEntry('${date}')">[X]</button>
+                </span>
+            `;
+            ledgerBox.appendChild(div);
+        });
+
+        updateMetrics(history);
+    }
+
+    function getWeekKey(dateStr) {
+        const date = new Date(dateStr);
+        const dayNum = date.getUTCDay() || 7;
+        date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+        const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+        return `${date.getUTCFullYear()}-W${weekNo < 10 ? '0' + weekNo : weekNo}`;
+    }
+
+    function updateMetrics(history) {
+        const totalBox = document.getElementById('total-spend-box');
+        const chartBox = document.getElementById('chart-box');
+        const filterMode = document.getElementById('view-filter').value;
+        const chartTitle = document.getElementById('chart-title');
+        
+        let total = 0;
+        Object.values(history).forEach(val => total += parseFloat(val));
+        totalBox.textContent = `₹${total.toFixed(2)}`;
+
+        chartTitle.textContent = `Historical Analysis (${filterMode.charAt(0).toUpperCase() + filterMode.slice(1)} Groups):`;
+
+        const aggregated = {};
+        Object.keys(history).forEach(dateStr => {
+            let key = '';
+            if (filterMode === 'weekly') key = getWeekKey(dateStr);
+            else if (filterMode === 'monthly') key = dateStr.substring(0, 7);
+            else if (filterMode === 'yearly') key = dateStr.substring(0, 4);
+            
+            aggregated[key] = (aggregated[key] || 0) + parseFloat(history[dateStr]);
+        });
+
+        const sortedKeys = Object.keys(aggregated).sort();
+        const displayKeys = sortedKeys.slice(-5);
+
+        chartBox.innerHTML = '';
+        if (displayKeys.length === 0) {
+            chartBox.innerHTML = '<div style="color: #808080; width: 100%; text-align:center; line-height: 180px;">[No Visual Data Available]</div>';
+            return;
+        }
+
+        const maxAmount = Math.max(...displayKeys.map(k => aggregated[k]));
+
+        displayKeys.forEach(key => {
+            const amount = aggregated[key];
+            const pct = maxAmount > 0 ? (amount / maxAmount) * 85 : 5;
+
+            let cleanLabel = key;
+            if (filterMode === 'monthly') {
+                const parts = key.split('-');
+                cleanLabel = `${parts[1]}/${parts[0].substring(2)}`;
+            } else if (filterMode === 'weekly') {
+                const parts = key.split('-');
+                cleanLabel = `${parts[1]}/${parts[0].substring(2)}`;
+            }
+
+            const barWrapper = document.createElement('div');
+            barWrapper.className = 'chart-bar-wrapper';
+            barWrapper.title = `${key}: ₹${amount.toFixed(2)}`;
+            barWrapper.innerHTML = `
+                <div style="font-size:9px; margin-bottom: 2px;">₹${Math.round(amount)}</div>
+                <div class="chart-bar" style="height: ${pct}%;"></div>
+                <div class="chart-label">${cleanLabel}</div>
+            `;
+            chartBox.appendChild(barWrapper);
+        });
+    }
+
+    // NEW EXPORT UTILITY: Saves data out into a physical text file 
+    function exportDataFile() {
+        const dataStr = localStorage.getItem('dailySpending') || "{}";
+        
+        // Form a text download stream via data URI
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        
+        const exportFileDefaultName = 'spend_backup.txt';
+        
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+    }
+
+    // NEW IMPORT UTILITY: Loads a text file and writes it into the local database
+    function importDataFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const parsedData = JSON.parse(e.target.result);
+                
+                // Confirm it is structurally sound data before committing
+                if (typeof parsedData === 'object' && parsedData !== null) {
+                    localStorage.setItem('dailySpending', JSON.stringify(parsedData));
+                    alert("Database file loaded successfully into system storage.");
+                    loadLedger();
+                } else {
+                    alert("Error: File format invalid.");
+                }
+            } catch (err) {
+                alert("Critical Error: Unable to read file registry.");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function saveSpending() {
+        const dateInput = document.getElementById('date-input').value;
+        const amountInput = document.getElementById('amount-input').value;
+
+        if (!dateInput || !amountInput || amountInput <= 0) {
+            alert("Error: Please input a valid date and amount.");
+            return;
+        }
+
+        const history = JSON.parse(localStorage.getItem('dailySpending')) || {};
+        
+        if (history[dateInput]) {
+            history[dateInput] = parseFloat(history[dateInput]) + parseFloat(amountInput);
+        } else {
+            history[dateInput] = parseFloat(amountInput);
+        }
+
+        localStorage.setItem('dailySpending', JSON.stringify(history));
+        document.getElementById('amount-input').value = '';
+        loadLedger();
+    }
+
+    function deleteEntry(date) {
+        const history = JSON.parse(localStorage.getItem('dailySpending')) || {};
+        delete history[date];
+        localStorage.setItem('dailySpending', JSON.stringify(history));
+        loadLedger();
+    }
+
+    loadLedger();
+</script>
+
+</body>
+</html>
