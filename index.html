@@ -366,7 +366,8 @@
 
     <script>
         const today = new Date();
-        document.getElementById('date-input').value = today.toISOString().split('T')[0];
+        const localDateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+        document.getElementById('date-input').value = localDateStr;
 
         const currentMonthStr = String(today.getMonth() + 1).padStart(2, '0');
         const currentYearStr = String(today.getFullYear());
@@ -530,7 +531,7 @@
                 chartBox.appendChild(barWrapper);
             }
         }
-        
+
         function saveSpending() {
             const dateInput = document.getElementById('date-input').value;
             const itemInput = document.getElementById('item-input').value.trim();
