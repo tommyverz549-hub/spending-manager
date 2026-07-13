@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpendManager95 v1.1</title>
+    <title>SpendManager 95</title>
     <style>
         /* 90s Operating System Color Palette & Micro-fonts */
         :root {
@@ -49,6 +48,17 @@
             box-shadow: 1px 1px 0px var(--win-edge-shadow);
         }
 
+        /* Fixed Lightbox State for Maximizing */
+        .window.maximized {
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) scale(1.2) !important;
+            z-index: 9999 !important;
+            width: 450px !important;
+            box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.4) !important;
+        }
+
         /* Classic Blue Title Bar */
         .title-bar {
             background: linear-gradient(90deg, var(--title-blue), #1084d0);
@@ -61,6 +71,15 @@
             letter-spacing: 0.5px;
         }
 
+        .title-bar-text {
+            color: var(--title-text);
+        }
+
+        .title-bar-controls {
+            display: flex;
+            gap: 2px;
+        }
+
         .title-bar-controls button {
             background-color: var(--win-bg);
             border-top: 1px solid var(--win-edge-light);
@@ -70,6 +89,19 @@
             font-weight: bold;
             padding: 1px 4px;
             cursor: pointer;
+            color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 18px;
+            min-width: 18px;
+        }
+
+        .title-bar-controls button:active {
+            border-top: 1px solid var(--win-edge-dark);
+            border-left: 1px solid var(--win-edge-dark);
+            border-right: 1px solid var(--win-edge-light);
+            border-bottom: 1px solid var(--win-edge-light);
         }
 
         .window-body {
@@ -108,6 +140,7 @@
             border-bottom: 2px solid var(--win-edge-light);
             outline: none;
             width: 100%;
+            border-radius: 0;
         }
 
         select.win-select {
@@ -127,6 +160,7 @@
             cursor: pointer;
             font-weight: bold;
             margin-top: 5px;
+            border-radius: 0;
         }
 
         button.win-btn:active {
@@ -233,379 +267,451 @@
             gap: 20px;
             width: 400px;
         }
+
+        /* Screen Dimming Underlay */
+        #window-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.25);
+            z-index: 9998;
+        }
     </style>
 </head>
-
 <body>
 
-    <!-- MAIN WORKSTATION WINDOW -->
-    <div class="window">
-        <div class="title-bar">
-            <div class="title-bar-text">📁 SpendManager v1.1</div>
-            <div class="title-bar-controls">
-                <button aria-label="Minimize">_</button>
-                <button aria-label="Maximize">?</button>
-                <button aria-label="Close" onclick="alert('System cannot be closed!')">X</button>
-            </div>
-        </div>
+<div id="window-overlay" onclick="closeAllMaximized()"></div>
 
-        <div class="window-body">
-            <div class="field-row">
-                <label for="date-input">Target Processing Date:</label>
-                <input id="date-input" type="date" onchange="loadLedger()">
-            </div>
-
-            <div class="field-row">
-                <label for="item-input">Item / Expense Name:</label>
-                <input id="item-input" type="text" placeholder="e.g., Cookies">
-            </div>
-
-            <div class="field-row">
-                <label for="amount-input">Amount Spent (₹):</label>
-                <input id="amount-input" type="number" step="0.01" placeholder="0.00">
-            </div>
-
-            <button class="win-btn" onclick="saveSpending()">COMMIT TO DATABASE</button>
-
-            <hr>
-
-            <label id="ledger-title">Entries for Selected Day:</label>
-            <div class="log-container" id="ledger-box"></div>
+<!-- MAIN LEDGER ENTRY MODULE -->
+<div class="window" id="win-main">
+    <div class="title-bar">
+        <div class="title-bar-text">SpendManager 95</div>
+        <div class="title-bar-controls">
+            <button class="toggle-size-btn" onclick="toggleMaximize('win-main')">⬜</button>
+            <button onclick="alert('System workspace cannot be killed!')">✕</button>
         </div>
     </div>
-
-    <!-- SIDE CONSOLE COLUMN -->
-    <div class="window-column">
-
-        <!-- MONTHLY BREAKDOWN UTILITY -->
-        <div class="window" style="width: 100%;">
-            <div class="title-bar">
-                <div class="title-bar-text">📊 BudgetGraph Dashboard</div>
-            </div>
-
-            <div class="window-body">
-                <div class="field-row inline-fields">
-                    <div>
-                        <label for="filter-month">Month:</label>
-                        <select id="filter-month" class="win-select" onchange="renderMonthlySummary()">
-                            <option value="01">January</option>
-                            <option value="02">February</option>
-                            <option value="03">March</option>
-                            <option value="04">April</option>
-                            <option value="05">May</option>
-                            <option value="06">June</option>
-                            <option value="07">July</option>
-                            <option value="08">August</option>
-                            <option value="09">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="filter-year">Year:</label>
-                        <select id="filter-year" class="win-select" onchange="renderMonthlySummary()">
-                            <option value="2024">2024</option>
-                            <option value="2025">2025</option>
-                            <option value="2026">2026</option>
-                            <option value="2027">2027</option>
-                            <option value="2028">2028</option>
-                        </select>
-                    </div>
-                </div>
-
-                <label>Total Selected Month Budget Spend:</label>
-                <div class="status-box" id="total-spend-box">₹0.00</div>
-
-                <label>Daily Breakdown History:</label>
-                <div class="log-container" id="monthly-summary-box"></div>
-            </div>
+    
+    <div class="window-body">
+        <div class="field-row">
+            <label for="date-input">Target Processing Date:</label>
+            <input id="date-input" type="date" onchange="loadLedger()">
         </div>
 
-        <!-- ANNUAL CHART MODULE -->
-        <div class="window" style="width: 100%;">
-            <div class="title-bar" style="background: linear-gradient(90deg, #404040, #808080); color: #fff;">
-                <div class="title-bar-text">📈 Annual Visual Analysis</div>
+        <div class="field-row">
+            <label for="item-input">Item / Expense Name:</label>
+            <input id="item-input" type="text">
+        </div>
+        
+        <div class="field-row">
+            <label for="amount-input">Amount Spent (₹):</label>
+            <input id="amount-input" type="number" step="0.01">
+        </div>
+        
+        <button class="win-btn" onclick="saveSpending()">Commit to Database</button>
+        
+        <hr>
+        
+        <label id="ledger-title">Entries for Selected Day:</label>
+        <div class="log-container" id="ledger-box"></div>
+    </div>
+</div>
+
+<!-- DATA DISPLAY COLUMN -->
+<div class="window-column">
+    
+    <!-- DASHBOARD UTIL -->
+    <div class="window" id="win-dashboard" style="width: 100%;">
+        <div class="title-bar">
+            <div class="title-bar-text">Budget Dashboard</div>
+            <div class="title-bar-controls">
+                <button class="toggle-size-btn" onclick="toggleMaximize('win-dashboard')">⬜</button>
+                <button onclick="toggleMaximize('win-dashboard')">✕</button>
             </div>
-            <div class="window-body">
-                <div class="field-row">
-                    <label for="chart-year">Select Tracked Year:</label>
-                    <select id="chart-year" class="win-select" onchange="renderAnnualChart()">
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
-                        <option value="2026">2026</option>
-                        <option value="2027">2027</option>
-                        <option value="2028">2028</option>
+        </div>
+        
+        <div class="window-body">
+            <div class="field-row inline-fields">
+                <div>
+                    <label for="filter-month">Month:</label>
+                    <select id="filter-month" class="win-select" onchange="renderMonthlySummary()">
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                        <option value="09">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
                     </select>
                 </div>
-
-                <label>Monthly Spending Bar Profile:</label>
-                <div class="chart-container" id="annual-chart-box"></div>
+                <div>
+                    <label for="filter-year">Year:</label>
+                    <select id="filter-year" class="win-select" onchange="renderMonthlySummary()"></select>
+                </div>
             </div>
+
+            <label>Total Selected Month Spend:</label>
+            <div class="status-box" id="total-spend-box">₹0.00</div>
+
+            <label>Daily Breakdown History:</label>
+            <div class="log-container" id="monthly-summary-box"></div>
         </div>
-
-        <!-- PORTABILITY DISK UTILITY -->
-        <div class="window" style="width: 100%;">
-            <div class="title-bar" style="background: linear-gradient(90deg, #b5a4a4, #d8cccc); color: #000;">
-                <div class="title-bar-text" style="font-weight: bold;">💾 Export and Save</div>
-            </div>
-            <div class="window-body">
-                <label>Move Data to New PC:</label>
-                <button class="win-btn" onclick="exportDataFile()">EXPORT TO BACKUP.TXT</button>
-
-                <hr style="margin: 10px 0;">
-
-                <label>Restore / Import Ledger File:</label>
-                <input type="file" id="file-uploader" style="display: none;" onchange="importDataFile(event)">
-                <button class="win-btn" style="margin-top:5px;"
-                    onclick="document.getElementById('file-uploader').click()">LOAD BACKUP.TXT FROM DISK</button>
-            </div>
-        </div>
-
     </div>
 
-    <script>
-        const today = new Date();
-        const localDateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-        document.getElementById('date-input').value = localDateStr;
+    <!-- VISUAL CHART COMPILER -->
+    <div class="window" id="win-analysis" style="width: 100%;">
+        <div class="title-bar">
+            <div class="title-bar-text">Annual Visual Analysis</div>
+            <div class="title-bar-controls">
+                <button class="toggle-size-btn" onclick="toggleMaximize('win-analysis')">⬜</button>
+                <button onclick="toggleMaximize('win-analysis')">✕</button>
+            </div>
+        </div>
+        <div class="window-body">
+            <div class="field-row">
+                <label for="chart-year">Select Tracked Year:</label>
+                <select id="chart-year" class="win-select" onchange="renderAnnualChart()"></select>
+            </div>
+            
+            <label>Monthly Spending Profile:</label>
+            <div class="chart-container" id="annual-chart-box"></div>
+        </div>
+    </div>
 
-        const currentMonthStr = String(today.getMonth() + 1).padStart(2, '0');
-        const currentYearStr = String(today.getFullYear());
+    <!-- DISK DATA UTILITY -->
+    <div class="window" id="win-backup" style="width: 100%;">
+        <div class="title-bar">
+            <div class="title-bar-text">Backup Utility</div>
+            <div class="title-bar-controls">
+                <button class="toggle-size-btn" onclick="toggleMaximize('win-backup')">⬜</button>
+                <button onclick="toggleMaximize('win-backup')">✕</button>
+            </div>
+        </div>
+        <div class="window-body">
+            <label>Move Data to New PC:</label>
+            <button class="win-btn" onclick="exportDataFile()">Export Backup File</button>
+            
+            <hr style="margin: 10px 0;">
+            
+            <label>Restore / Import Ledger File:</label>
+            <input type="file" id="file-uploader" style="display: none;" onchange="importDataFile(event)">
+            <button class="win-btn" style="margin-top:5px;" onclick="document.getElementById('file-uploader').click()">Load Backup File</button>
+        </div>
+    </div>
 
-        document.getElementById('filter-month').value = currentMonthStr;
-        document.getElementById('filter-year').value = currentYearStr;
-        document.getElementById('chart-year').value = currentYearStr;
+</div>
 
-        function loadLedger() {
-            const ledgerBox = document.getElementById('ledger-box');
-            const selectedDate = document.getElementById('date-input').value;
-            const ledgerTitle = document.getElementById('ledger-title');
+<script>
+    const today = new Date();
+    const localDateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+    document.getElementById('date-input').value = localDateStr;
+    
+    const currentMonthStr = String(today.getMonth() + 1).padStart(2, '0');
+    document.getElementById('filter-month').value = currentMonthStr;
 
-            ledgerBox.innerHTML = '';
-            ledgerTitle.textContent = `Entries for ${selectedDate || 'Selected Day'}:`;
+    function populateYearDropdowns() {
+        const filterYearSelect = document.getElementById('filter-year');
+        const chartYearSelect = document.getElementById('chart-year');
+        
+        filterYearSelect.innerHTML = '';
+        chartYearSelect.innerHTML = '';
 
-            const history = JSON.parse(localStorage.getItem('dailySpendingDetailed')) || {};
-            const dayEntries = history[selectedDate] || [];
+        const currentYear = new Date().getFullYear();
+        const years = new Set([currentYear]);
 
-            if (dayEntries.length === 0) {
-                ledgerBox.innerHTML = '<div style="color: #808080; text-align:center; margin-top:60px;">[No Records For This Date]</div>';
-                renderMonthlySummary();
-                renderAnnualChart();
-                return;
+        const history = JSON.parse(localStorage.getItem('dailySpendingDetailed')) || {};
+        Object.keys(history).forEach(dateStr => {
+            const year = parseInt(dateStr.split('-')[0], 10);
+            if (!isNaN(year)) {
+                years.add(year);
             }
+        });
 
-            dayEntries.forEach((entry, index) => {
-                const div = document.createElement('div');
-                div.className = 'log-item';
-                div.innerHTML = `
-                <span>${index + 1}. <strong>${entry.item}</strong></span>
-                <span>₹${parseFloat(entry.amount).toFixed(2)} 
-                    <button class="delete-btn" onclick="deleteEntry('${selectedDate}', ${index})">[X]</button>
-                </span>
-            `;
-                ledgerBox.appendChild(div);
-            });
+        const sortedYears = Array.from(years).sort((a, b) => a - b);
 
+        sortedYears.forEach(year => {
+            const opt1 = document.createElement('option');
+            opt1.value = year;
+            opt1.textContent = year;
+            filterYearSelect.appendChild(opt1);
+
+            const opt2 = document.createElement('option');
+            opt2.value = year;
+            opt2.textContent = year;
+            chartYearSelect.appendChild(opt2);
+        });
+
+        filterYearSelect.value = currentYear;
+        chartYearSelect.value = currentYear;
+    }
+
+    /* Window Size Processor */
+    function toggleMaximize(id) {
+        const el = document.getElementById(id);
+        const overlay = document.getElementById('window-overlay');
+        const btn = el.querySelector('.toggle-size-btn');
+        
+        if(el.classList.contains('maximized')) {
+            el.classList.remove('maximized');
+            overlay.style.display = 'none';
+            btn.textContent = '⬜';
+        } else {
+            closeAllMaximized(); 
+            el.classList.add('maximized');
+            overlay.style.display = 'block';
+            btn.textContent = '─';
+        }
+    }
+
+    function closeAllMaximized() {
+        document.querySelectorAll('.window').forEach(w => {
+            w.classList.remove('maximized');
+            const btn = w.querySelector('.toggle-size-btn');
+            if (btn) btn.textContent = '⬜';
+        });
+        document.getElementById('window-overlay').style.display = 'none';
+    }
+
+    function loadLedger() {
+        const ledgerBox = document.getElementById('ledger-box');
+        const selectedDate = document.getElementById('date-input').value;
+        const ledgerTitle = document.getElementById('ledger-title');
+        
+        ledgerBox.innerHTML = '';
+        ledgerTitle.textContent = `Entries for ${selectedDate || 'Selected Day'}:`;
+        
+        const history = JSON.parse(localStorage.getItem('dailySpendingDetailed')) || {};
+        const dayEntries = history[selectedDate] || [];
+        
+        if (dayEntries.length === 0) {
+            ledgerBox.innerHTML = '<div style="color: #808080; text-align:center; margin-top:60px;">[No Records For This Date]</div>';
             renderMonthlySummary();
             renderAnnualChart();
+            return;
         }
 
-        function renderMonthlySummary() {
-            const targetMonth = document.getElementById('filter-month').value;
-            const targetYear = document.getElementById('filter-year').value;
-            const summaryBox = document.getElementById('monthly-summary-box');
-            const totalBox = document.getElementById('total-spend-box');
+        dayEntries.forEach((entry, index) => {
+            const div = document.createElement('div');
+            div.className = 'log-item';
+            div.innerHTML = `
+                <span>${index + 1}. <strong>${entry.item}</strong></span>
+                <span>₹${parseFloat(entry.amount).toFixed(2)} 
+                    <button class="delete-btn" onclick="deleteEntry('${selectedDate}', ${index})">[✕]</button>
+                </span>
+            `;
+            ledgerBox.appendChild(div);
+        });
 
-            summaryBox.innerHTML = '';
+        renderMonthlySummary();
+        renderAnnualChart();
+    }
 
-            const history = JSON.parse(localStorage.getItem('dailySpendingDetailed')) || {};
-            let runningMonthTotal = 0;
-            const matchingDays = [];
+    function renderMonthlySummary() {
+        const targetMonth = document.getElementById('filter-month').value;
+        const targetYear = document.getElementById('filter-year').value;
+        const summaryBox = document.getElementById('monthly-summary-box');
+        const totalBox = document.getElementById('total-spend-box');
+        
+        if(!targetYear) return;
+        summaryBox.innerHTML = '';
+        
+        const history = JSON.parse(localStorage.getItem('dailySpendingDetailed')) || {};
+        let runningMonthTotal = 0;
+        const matchingDays = [];
 
-            Object.keys(history).forEach(dateStr => {
-                if (dateStr.startsWith(`${targetYear}-${targetMonth}`)) {
-                    let daySum = 0;
-                    history[dateStr].forEach(entry => {
-                        daySum += parseFloat(entry.amount);
-                    });
+        Object.keys(history).forEach(dateStr => {
+            if (dateStr.startsWith(`${targetYear}-${targetMonth}`)) {
+                let daySum = 0;
+                history[dateStr].forEach(entry => {
+                    daySum += parseFloat(entry.amount);
+                });
+                
+                runningMonthTotal += daySum;
+                
+                const parsedDate = new Date(dateStr);
+                const readableDate = parsedDate.toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
 
-                    runningMonthTotal += daySum;
-
-                    const parsedDate = new Date(dateStr);
-                    const readableDate = parsedDate.toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                    });
-
-                    matchingDays.push({
-                        rawDate: dateStr,
-                        label: readableDate,
-                        total: daySum
-                    });
-                }
-            });
-
-            totalBox.textContent = `₹${runningMonthTotal.toFixed(2)}`;
-
-            if (matchingDays.length === 0) {
-                summaryBox.innerHTML = '<div style="color: #808080; text-align:center; margin-top:60px;">[No Spend Records Found]</div>';
-                return;
+                matchingDays.push({
+                    rawDate: dateStr,
+                    label: readableDate,
+                    total: daySum
+                });
             }
+        });
 
-            matchingDays.sort((a, b) => a.rawDate.localeCompare(b.rawDate));
+        totalBox.textContent = `₹${runningMonthTotal.toFixed(2)}`;
 
-            matchingDays.forEach(day => {
-                const div = document.createElement('div');
-                div.className = 'log-item';
-                div.style.cursor = 'pointer';
-                div.onclick = () => {
-                    document.getElementById('date-input').value = day.rawDate;
-                    loadLedger();
-                };
-                div.innerHTML = `
+        if (matchingDays.length === 0) {
+            summaryBox.innerHTML = '<div style="color: #808080; text-align:center; margin-top:60px;">[No Spend Records Found]</div>';
+            return;
+        }
+
+        matchingDays.sort((a, b) => a.rawDate.localeCompare(b.rawDate));
+
+        matchingDays.forEach(day => {
+            const div = document.createElement('div');
+            div.className = 'log-item';
+            div.style.cursor = 'pointer';
+            div.onclick = () => {
+                document.getElementById('date-input').value = day.rawDate;
+                loadLedger();
+            };
+            div.innerHTML = `
                 <span>📅 ${day.label}</span>
                 <span style="color: #000080; font-weight: bold;">₹${day.total.toFixed(2)}</span>
             `;
-                summaryBox.appendChild(div);
-            });
+            summaryBox.appendChild(div);
+        });
+    }
+
+    function renderAnnualChart() {
+        const targetYear = parseInt(document.getElementById('chart-year').value, 10);
+        const chartBox = document.getElementById('annual-chart-box');
+        if(!targetYear) return;
+        chartBox.innerHTML = '';
+
+        const history = JSON.parse(localStorage.getItem('dailySpendingDetailed')) || {};
+        
+        const monthlyTotals = Array(12).fill(0);
+        const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        let dataFound = false;
+
+        Object.keys(history).forEach(dateStr => {
+            if (dateStr.startsWith(targetYear.toString())) {
+                const monthIndex = parseInt(dateStr.split('-')[1], 10) - 1;
+                history[dateStr].forEach(entry => {
+                    monthlyTotals[monthIndex] += parseFloat(entry.amount);
+                    dataFound = true;
+                });
+            }
+        });
+
+        const sysDate = new Date();
+        const sysYear = sysDate.getFullYear();
+        const sysMonthIndex = sysDate.getMonth();
+
+        let maxVisibleMonths = 12;
+        if (targetYear === sysYear) {
+            maxVisibleMonths = sysMonthIndex + 1; 
         }
 
-        function renderAnnualChart() {
-            const targetYear = parseInt(document.getElementById('chart-year').value, 10);
-            const chartBox = document.getElementById('annual-chart-box');
-            chartBox.innerHTML = '';
+        if (!dataFound) {
+            chartBox.innerHTML = '<div style="color: #808080; width: 100%; text-align:center; line-height: 160px;">[No Data Logs For Year]</div>';
+            return;
+        }
 
-            const history = JSON.parse(localStorage.getItem('dailySpendingDetailed')) || {};
+        const visibleTotals = monthlyTotals.slice(0, maxVisibleMonths);
+        const absoluteYearlyMax = Math.max(...visibleTotals);
 
-            const monthlyTotals = Array(12).fill(0);
-            const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            let dataFound = false;
+        for (let index = 0; index < maxVisibleMonths; index++) {
+            const total = monthlyTotals[index];
+            const barWrapper = document.createElement('div');
+            barWrapper.className = 'chart-bar-wrapper';
+            barWrapper.title = `${monthLabels[index]} ${targetYear}: ₹${total.toFixed(2)}`;
+            
+            const pct = absoluteYearlyMax > 0 ? (total / absoluteYearlyMax) * 80 : 0;
+            const displayAmt = total > 0 ? `₹${Math.round(total)}` : '₹0';
 
-            Object.keys(history).forEach(dateStr => {
-                if (dateStr.startsWith(targetYear.toString())) {
-                    const monthIndex = parseInt(dateStr.split('-')[1], 10) - 1;
-                    history[dateStr].forEach(entry => {
-                        monthlyTotals[monthIndex] += parseFloat(entry.amount);
-                        dataFound = true;
-                    });
-                }
-            });
-
-            // Determine how many months to show based on system calendar date context
-            const sysDate = new Date();
-            const sysYear = sysDate.getFullYear();
-            const sysMonthIndex = sysDate.getMonth(); // 0 = Jan, 6 = July
-
-            let maxVisibleMonths = 12;
-            if (targetYear === sysYear) {
-                maxVisibleMonths = sysMonthIndex + 1; // Limit visibility to current month
-            } else if (targetYear > sysYear) {
-                maxVisibleMonths = 0; // Hide completely for future years
-            }
-
-            if (!dataFound || maxVisibleMonths === 0) {
-                chartBox.innerHTML = '<div style="color: #808080; width: 100%; text-align:center; line-height: 160px;">[No Data Logs For Year]</div>';
-                return;
-            }
-
-            // Calculate peak amount within the restricted viewport
-            const visibleTotals = monthlyTotals.slice(0, maxVisibleMonths);
-            const absoluteYearlyMax = Math.max(...visibleTotals);
-
-            for (let index = 0; index < maxVisibleMonths; index++) {
-                const total = monthlyTotals[index];
-                const barWrapper = document.createElement('div');
-                barWrapper.className = 'chart-bar-wrapper';
-                barWrapper.title = `${monthLabels[index]} ${targetYear}: ₹${total.toFixed(2)}`;
-
-                const pct = absoluteYearlyMax > 0 ? (total / absoluteYearlyMax) * 80 : 0;
-                const displayAmt = total > 0 ? `₹${Math.round(total)}` : '₹0';
-
-                // Clean look: always use standard blue theme gradient for all active bars
-                barWrapper.innerHTML = `
+            barWrapper.innerHTML = `
                 <div style="font-size: 8px; margin-bottom: 2px; white-space: nowrap;">${total > 0 ? displayAmt : ''}</div>
-                <div class="chart-bar" style="height: ${pct}%; background: linear-gradient(to right, #000080, #1084d0);"></div>
+                <div class="chart-bar"></div>
                 <div class="chart-label" style="font-weight: ${total > 0 ? 'bold' : 'normal'}">${monthLabels[index]}</div>
             `;
-                chartBox.appendChild(barWrapper);
-            }
+            barWrapper.querySelector('.chart-bar').style.height = `${pct}%`;
+            chartBox.appendChild(barWrapper);
+        }
+    }
+
+    function saveSpending() {
+        const dateInput = document.getElementById('date-input').value;
+        const itemInput = document.getElementById('item-input').value.trim();
+        const amountInput = document.getElementById('amount-input').value;
+
+        if (!dateInput || !itemInput || !amountInput || amountInput <= 0) {
+            alert("Error: Please provide valid date, label description, and amount.");
+            return;
         }
 
-        function saveSpending() {
-            const dateInput = document.getElementById('date-input').value;
-            const itemInput = document.getElementById('item-input').value.trim();
-            const amountInput = document.getElementById('amount-input').value;
-
-            if (!dateInput || !itemInput || !amountInput || amountInput <= 0) {
-                alert("Error: Please provide valid date, label description, and amount.");
-                return;
-            }
-
-            const history = JSON.parse(localStorage.getItem('dailySpendingDetailed')) || {};
-
-            if (!history[dateInput]) {
-                history[dateInput] = [];
-            }
-
-            history[dateInput].push({
-                item: itemInput,
-                amount: parseFloat(amountInput)
-            });
-
-            localStorage.setItem('dailySpendingDetailed', JSON.stringify(history));
-
-            document.getElementById('item-input').value = '';
-            document.getElementById('amount-input').value = '';
-            loadLedger();
+        const history = JSON.parse(localStorage.getItem('dailySpendingDetailed')) || {};
+        
+        if (!history[dateInput]) {
+            history[dateInput] = [];
         }
 
-        function deleteEntry(date, index) {
-            const history = JSON.parse(localStorage.getItem('dailySpendingDetailed')) || {};
-            if (history[date]) {
-                history[date].splice(index, 1);
-                if (history[date].length === 0) {
-                    delete history[date];
-                }
-                localStorage.setItem('dailySpendingDetailed', JSON.stringify(history));
-            }
-            loadLedger();
-        }
+        history[dateInput].push({
+            item: itemInput,
+            amount: parseFloat(amountInput)
+        });
 
-        function exportDataFile() {
-            const dataStr = localStorage.getItem('dailySpendingDetailed') || "{}";
-            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', 'spend_backup.txt');
-            linkElement.click();
-        }
-
-        function importDataFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                try {
-                    const parsedData = JSON.parse(e.target.result);
-                    if (typeof parsedData === 'object' && parsedData !== null) {
-                        localStorage.setItem('dailySpendingDetailed', JSON.stringify(parsedData));
-                        alert("System registry successfully updated.");
-                        loadLedger();
-                    } else {
-                        alert("Error: File payload invalid.");
-                    }
-                } catch (err) {
-                    alert("Critical Error: Core format corrupted.");
-                }
-            };
-            reader.readAsText(file);
-        }
-
+        localStorage.setItem('dailySpendingDetailed', JSON.stringify(history));
+        
+        document.getElementById('item-input').value = '';
+        document.getElementById('amount-input').value = '';
+        
+        populateYearDropdowns();
         loadLedger();
-    </script>
+    }
+
+    function deleteEntry(date, index) {
+        const history = JSON.parse(localStorage.getItem('dailySpendingDetailed')) || {};
+        if (history[date]) {
+            history[date].splice(index, 1);
+            if (history[date].length === 0) {
+                delete history[date];
+            }
+            localStorage.setItem('dailySpendingDetailed', JSON.stringify(history));
+        }
+        populateYearDropdowns();
+        loadLedger();
+    }
+
+    function exportDataFile() {
+        const dataStr = localStorage.getItem('dailySpendingDetailed') || "{}";
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', 'spend_backup.txt');
+        linkElement.click();
+    }
+
+    function importDataFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const parsedData = JSON.parse(e.target.result);
+                if (typeof parsedData === 'object' && parsedData !== null) {
+                    localStorage.setItem('dailySpendingDetailed', JSON.stringify(parsedData));
+                    alert("System registry successfully updated.");
+                    populateYearDropdowns();
+                    loadLedger();
+                } else {
+                    alert("Error: File payload invalid.");
+                }
+            } catch (err) {
+                alert("Critical Error: Core format corrupted.");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    populateYearDropdowns();
+    loadLedger();
+</script>
 
 </body>
-
 </html>
